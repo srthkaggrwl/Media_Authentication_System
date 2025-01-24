@@ -10,7 +10,7 @@ contract MediaAuthentication {
     }
 
     mapping(bytes32 => Media) public mediaRecords; // Mapping of hash to Media details
-
+    
     event MediaUploaded(
         bytes32 hash,
         string cid,
