@@ -10,7 +10,8 @@ contract MediaAuthentication {
     }
 
     mapping(bytes32 => Media) public mediaRecords; // Mapping of hash to Media details
-    
+    bytes32[] public mediaHashes; // Array to store all media hashes
+
     event MediaUploaded(
         bytes32 hash,
         string cid,
@@ -46,6 +47,9 @@ contract MediaAuthentication {
             timestamp: block.timestamp
         });
 
+        // Add the media hash to the array
+        mediaHashes.push(mediaHash);
+
         emit MediaUploaded(mediaHash, _cid, _metadata, msg.sender, block.timestamp);
     }
 
@@ -71,5 +75,29 @@ contract MediaAuthentication {
         bool isAuthentic = mediaRecords[mediaHash].uploader != address(0);
 
         emit MediaVerified(mediaHash, isAuthentic, msg.sender, block.timestamp);
+    }
+
+    /**
+     * @dev Fetches all media details uploaded to the blockchain.
+     * @return hashes Array of all media hashes.
+     * @return details Array of media details (CID, metadata, uploader, and timestamp).
+     */
+    function getAllMediaDetails()
+        external
+        view
+        returns (
+            bytes32[] memory hashes,
+            Media[] memory details
+        )
+    {
+        uint256 count = mediaHashes.length;
+        Media[] memory allMedia = new Media[](count);
+
+        for (uint256 i = 0; i < count; i++) {
+            bytes32 hash = mediaHashes[i];
+            allMedia[i] = mediaRecords[hash];
+        }
+
+        return (mediaHashes, allMedia);
     }
 }
