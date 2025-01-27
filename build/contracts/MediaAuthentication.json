@@ -16611,12 +16611,12 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x742eb67fFA4CAE18dA0E91BE042D92D6b67c6D32",
-      "transactionHash": "0x703d84feda45decc2d3d0112cc94324ee0d16f8426c2860f8949c09fb0ad149e"
+      "address": "0xB7E840b9e42Be5dDED78F500B115e11425224158",
+      "transactionHash": "0x252eed4217d9f5e767e382ce27e523d42201f0ea3098fd178842528cb4123bc1"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-01-27T07:19:08.169Z",
+  "updatedAt": "2025-01-27T17:30:37.046Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",

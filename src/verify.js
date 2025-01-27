@@ -216,7 +216,7 @@ abi = [
       "constant": true
     }
 ];
-const contractAddress = '0x742eb67fFA4CAE18dA0E91BE042D92D6b67c6D32'; // Replace with your contract address
+const contractAddress = '0xB7E840b9e42Be5dDED78F500B115e11425224158'; // Replace with your contract address
 let accounts = [];
 let mediaAuthContract;
 

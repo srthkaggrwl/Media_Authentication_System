@@ -216,7 +216,7 @@ abi = [
       "constant": true
     }
 ];
-const contractAddress = '0x742eb67fFA4CAE18dA0E91BE042D92D6b67c6D32'; // Replace with your contract address
+const contractAddress = '0xB7E840b9e42Be5dDED78F500B115e11425224158'; // Replace with your contract address
 let accounts = [];
 let mediaAuthContract;
 
@@ -253,10 +253,13 @@ async function getUserAccount() {
     }
 }
 
+
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('form');
     const uploadButton = document.getElementById('uploadButton');
     const fileInput = document.getElementById('mediaFile');
+    const resultContainer = document.createElement('div'); // Container for CID and QR Code
+    document.body.appendChild(resultContainer);
 
     // Prevent default form submission
     form.addEventListener('submit', function (e) {
@@ -290,7 +293,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 fileType: file.type,
                 uploadTime: new Date().toISOString(),
             });
-            
 
             console.log('CID:', cid);
             console.log('Metadata:', metadata);
@@ -317,8 +319,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 console.log('Transaction receipt:', receipt);
                 alert('Media uploaded successfully!');
-                // alert('CID:', cid);
-                //saveToArtifacts(file, cid, metadata);
+
+                // Display CID and QR code
+                displayResult(cid);
+
             } catch (err) {
                 console.error('Error uploading media:', err.message);
                 alert('Failed to upload media. Please check the console for details.');
@@ -327,7 +331,104 @@ document.addEventListener('DOMContentLoaded', function () {
 
         reader.readAsArrayBuffer(file);
     });
+
+    function displayResult(cid) {
+        resultContainer.innerHTML = ''; // Clear any previous results
+
+        // Display CID
+        const cidElement = document.createElement('p');
+        cidElement.textContent = `CID: ${cid}`;
+        cidElement.style.fontWeight = 'bold';
+        resultContainer.appendChild(cidElement);
+
+        // Generate QR Code
+        const qrCodeCanvas = document.createElement('canvas');
+        QRCode.toCanvas(qrCodeCanvas, cid, { width: 150 }, function (error) {
+            if (error) console.error('Error generating QR code:', error);
+        });
+        resultContainer.appendChild(qrCodeCanvas);
+
+        // Style the result container
+        resultContainer.style.marginTop = '20px';
+        resultContainer.style.textAlign = 'center';
+    }
 });
+
+// document.addEventListener('DOMContentLoaded', function () {
+//     const form = document.querySelector('form');
+//     const uploadButton = document.getElementById('uploadButton');
+//     const fileInput = document.getElementById('mediaFile');
+
+//     // Prevent default form submission
+//     form.addEventListener('submit', function (e) {
+//         e.preventDefault();
+//     });
+
+//     uploadButton.addEventListener('click', async function (e) {
+//         e.preventDefault();
+
+//         if (!fileInput || fileInput.files.length === 0) {
+//             alert('Please select a file to upload.');
+//             return;
+//         }
+
+//         const file = fileInput.files[0];
+//         const reader = new FileReader();
+
+//         reader.onload = async function () {
+//             const arrayBuffer = reader.result;
+
+//             // Convert ArrayBuffer to Uint8Array
+//             const uint8Array = new Uint8Array(arrayBuffer);
+
+//             // Generate the hash (CID) using keccak256
+//             const hexString = web3.utils.bytesToHex(uint8Array); // Convert Uint8Array to Hex
+//             const cid = web3.utils.keccak256(hexString); // Generate keccak256 hash
+
+//             // Prepare metadata
+//             const metadata = JSON.stringify({
+//                 fileName: file.name,
+//                 fileType: file.type,
+//                 uploadTime: new Date().toISOString(),
+//             });
+            
+
+//             console.log('CID:', cid);
+//             console.log('Metadata:', metadata);
+
+//             try {
+//                 // Get user account
+//                 const userAccount = await getUserAccount();
+//                 if (!userAccount) return;
+
+//                 // Estimate gas
+//                 let gasEstimate;
+//                 try {
+//                     gasEstimate = await mediaAuthContract.methods.uploadMedia(cid, metadata).estimateGas({ from: userAccount });
+//                 } catch (err) {
+//                     console.error('Gas estimation failed:', err.message);
+//                     gasEstimate = 3000000; // Default fallback gas
+//                 }
+
+//                 // Send the transaction to the blockchain
+//                 const receipt = await mediaAuthContract.methods.uploadMedia(cid, metadata).send({
+//                     from: userAccount,
+//                     gas: gasEstimate,
+//                 });
+
+//                 console.log('Transaction receipt:', receipt);
+//                 alert('Media uploaded successfully!');
+//                 // alert('CID:', cid);
+//                 //saveToArtifacts(file, cid, metadata);
+//             } catch (err) {
+//                 console.error('Error uploading media:', err.message);
+//                 alert('Failed to upload media. Please check the console for details.');
+//             }
+//         };
+
+//         reader.readAsArrayBuffer(file);
+//     });
+// });
 
 // // Function to save the file and metadata locally in the artifacts folder (for Node.js environment only)
 // function saveToArtifacts(file, cid, metadata) {
