@@ -149,6 +149,26 @@ abi = [
           "type": "string"
         }
       ],
+      "name": "mediaExists",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "exists",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_cid",
+          "type": "string"
+        }
+      ],
       "name": "verifyMedia",
       "outputs": [
         {
@@ -216,7 +236,7 @@ abi = [
       "constant": true
     }
 ];
-const contractAddress = '0xB7E840b9e42Be5dDED78F500B115e11425224158'; // Replace with your contract address
+const contractAddress = '0xc752C6eFA44724682905b0C362614Ae8B0D42600'; // Replace with your contract address
 let accounts = [];
 let mediaAuthContract;
 
@@ -264,73 +284,88 @@ document.addEventListener('DOMContentLoaded', function () {
     // Prevent default form submission
     form.addEventListener('submit', function (e) {
         e.preventDefault();
-    });
+});
 
     uploadButton.addEventListener('click', async function (e) {
-        e.preventDefault();
+    e.preventDefault();
 
-        if (!fileInput || fileInput.files.length === 0) {
-            alert('Please select a file to upload.');
-            return;
-        }
+    if (!fileInput || fileInput.files.length === 0) {
+        alert('Please select a file to upload.');
+        return;
+    }
 
-        const file = fileInput.files[0];
-        const reader = new FileReader();
+    const file = fileInput.files[0];
+    const reader = new FileReader();
 
-        reader.onload = async function () {
-            const arrayBuffer = reader.result;
+    reader.onload = async function () {
+        const arrayBuffer = reader.result;
 
-            // Convert ArrayBuffer to Uint8Array
-            const uint8Array = new Uint8Array(arrayBuffer);
+        // Convert ArrayBuffer to Uint8Array
+        const uint8Array = new Uint8Array(arrayBuffer);
 
-            // Generate the hash (CID) using keccak256
-            const hexString = web3.utils.bytesToHex(uint8Array); // Convert Uint8Array to Hex
-            const cid = web3.utils.keccak256(hexString); // Generate keccak256 hash
+        // Generate the hash (CID) using keccak256
+        const hexString = web3.utils.bytesToHex(uint8Array); // Convert Uint8Array to Hex
+        const cid = web3.utils.keccak256(hexString); // Generate keccak256 hash
 
-            // Prepare metadata
-            const metadata = JSON.stringify({
-                fileName: file.name,
-                fileType: file.type,
-                uploadTime: new Date().toISOString(),
+        // Prepare metadata
+        const metadata = JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            uploadTime: new Date().toISOString(),
+        });
+
+        console.log('CID:', cid);
+        console.log('Metadata:', metadata);
+
+        try {
+            // Get user account
+            const userAccount = await getUserAccount();
+            if (!userAccount) return;
+
+            // Check if media already exists
+            const exists = await mediaAuthContract.methods.verifyMedia(cid).call();
+            if (exists) {
+                alert('Media already exists!');
+                return;
+            }
+
+            // Estimate gas and send transaction
+            let gasEstimate;
+            try {
+                gasEstimate = await mediaAuthContract.methods.uploadMedia(cid, metadata).estimateGas({ from: userAccount });
+                console.log('Gas estimate:', gasEstimate);
+            } catch (err) {
+                console.error('Gas estimation failed:', err.message);
+                gasEstimate = 300000; // Default fallback gas
+            }
+
+            const receipt = await mediaAuthContract.methods.uploadMedia(cid, metadata).send({
+                from: userAccount,
+                gas: gasEstimate,
             });
 
-            console.log('CID:', cid);
-            console.log('Metadata:', metadata);
+            console.log('Transaction receipt:', receipt);
+            alert('Media uploaded successfully!');
 
-            try {
-                // Get user account
-                const userAccount = await getUserAccount();
-                if (!userAccount) return;
+            // Display CID and QR code
+            displayResult(cid);
+        } catch (err) {
+            console.error('Error uploading media:', err);
 
-                // Estimate gas
-                let gasEstimate;
-                try {
-                    gasEstimate = await mediaAuthContract.methods.uploadMedia(cid, metadata).estimateGas({ from: userAccount });
-                } catch (err) {
-                    console.error('Gas estimation failed:', err.message);
-                    gasEstimate = 3000000; // Default fallback gas
-                }
-
-                // Send the transaction to the blockchain
-                const receipt = await mediaAuthContract.methods.uploadMedia(cid, metadata).send({
-                    from: userAccount,
-                    gas: gasEstimate,
-                });
-
-                console.log('Transaction receipt:', receipt);
-                alert('Media uploaded successfully!');
-
-                // Display CID and QR code
-                displayResult(cid);
-
-            } catch (err) {
-                console.error('Error uploading media:', err.message);
-                alert('Failed to upload media. Please check the console for details.');
+            // Extract revert reason from error if available
+            if (err.data && err.data.message) {
+                alert(`Transaction failed: ${err.data.message}`);
+            } else if (err.message) {
+                alert(`Transaction failed: ${err.message}`);
+            } else {
+                alert('Transaction failed. Please check the console for details.');
             }
-        };
+        }
+    };
 
-        reader.readAsArrayBuffer(file);
-    });
+    reader.readAsArrayBuffer(file);
+});
+
 
     function displayResult(cid) {
         resultContainer.innerHTML = ''; // Clear any previous results

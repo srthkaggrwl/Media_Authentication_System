@@ -37,7 +37,7 @@ contract MediaAuthentication {
         bytes32 mediaHash = keccak256(abi.encodePacked(_cid));
 
         // Ensure the media is not already uploaded
-        require(mediaRecords[mediaHash].uploader == address(0), "Media already exists");
+        require(!mediaExists(_cid), "Media already exists");
 
         // Store media details on-chain
         mediaRecords[mediaHash] = Media({
@@ -54,16 +54,22 @@ contract MediaAuthentication {
     }
 
     /**
+     * @dev Checks if a media CID already exists in the records.
+     * @param _cid The CID of the media to check.
+     * @return exists True if the media exists, false otherwise.
+     */
+    function mediaExists(string memory _cid) public view returns (bool exists) {
+        bytes32 mediaHash = keccak256(abi.encodePacked(_cid));
+        return mediaRecords[mediaHash].uploader != address(0);
+    }
+
+    /**
      * @dev Verifies the authenticity of a video by comparing its hash with stored records.
      * @param _cid The CID of the video to be verified.
      * @return isAuthentic True if the video is authentic, false otherwise.
      */
     function verifyMedia(string memory _cid) external view returns (bool isAuthentic) {
-        // Generate hash of the CID
-        bytes32 mediaHash = keccak256(abi.encodePacked(_cid));
-
-        // Check if the hash exists in the mapping
-        return mediaRecords[mediaHash].uploader != address(0);
+        return mediaExists(_cid);
     }
 
     /**
@@ -72,7 +78,7 @@ contract MediaAuthentication {
      */
     function authenticateMedia(string memory _cid) external {
         bytes32 mediaHash = keccak256(abi.encodePacked(_cid));
-        bool isAuthentic = mediaRecords[mediaHash].uploader != address(0);
+        bool isAuthentic = mediaExists(_cid);
 
         emit MediaVerified(mediaHash, isAuthentic, msg.sender, block.timestamp);
     }

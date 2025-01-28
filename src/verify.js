@@ -149,6 +149,26 @@ abi = [
           "type": "string"
         }
       ],
+      "name": "mediaExists",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "exists",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function",
+      "constant": true
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_cid",
+          "type": "string"
+        }
+      ],
       "name": "verifyMedia",
       "outputs": [
         {
@@ -216,7 +236,7 @@ abi = [
       "constant": true
     }
 ];
-const contractAddress = '0xB7E840b9e42Be5dDED78F500B115e11425224158'; // Replace with your contract address
+const contractAddress = '0xc752C6eFA44724682905b0C362614Ae8B0D42600'; // Replace with your contract address
 let accounts = [];
 let mediaAuthContract;
 
