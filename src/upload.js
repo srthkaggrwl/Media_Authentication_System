@@ -236,7 +236,7 @@ abi = [
       "constant": true
     }
 ];
-const contractAddress = '0xc752C6eFA44724682905b0C362614Ae8B0D42600'; // Replace with your contract address
+const contractAddress = '0x1f57AfdBD1148ED1D0a280C672216C7AF8Cb9eF7'; // Replace with your contract address
 let accounts = [];
 let mediaAuthContract;
 
@@ -272,120 +272,106 @@ async function getUserAccount() {
         return null;
     }
 }
-
-
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('form');
     const uploadButton = document.getElementById('uploadButton');
     const fileInput = document.getElementById('mediaFile');
-    const resultContainer = document.createElement('div'); // Container for CID and QR Code
-    document.body.appendChild(resultContainer);
+    const resultContainer = document.getElementById('resultContainer');
 
-    // Prevent default form submission
     form.addEventListener('submit', function (e) {
         e.preventDefault();
-});
+    });
 
     uploadButton.addEventListener('click', async function (e) {
-    e.preventDefault();
+        e.preventDefault();
 
-    if (!fileInput || fileInput.files.length === 0) {
-        alert('Please select a file to upload.');
-        return;
-    }
+        if (!fileInput || fileInput.files.length === 0) {
+            alert('Please select a file to upload.');
+            return;
+        }
 
-    const file = fileInput.files[0];
-    const reader = new FileReader();
+        const file = fileInput.files[0];
+        const reader = new FileReader();
 
-    reader.onload = async function () {
-        const arrayBuffer = reader.result;
+        reader.onload = async function () {
+            const arrayBuffer = reader.result;
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const hexString = web3.utils.bytesToHex(uint8Array);
+            const cid = web3.utils.keccak256(hexString);
 
-        // Convert ArrayBuffer to Uint8Array
-        const uint8Array = new Uint8Array(arrayBuffer);
-
-        // Generate the hash (CID) using keccak256
-        const hexString = web3.utils.bytesToHex(uint8Array); // Convert Uint8Array to Hex
-        const cid = web3.utils.keccak256(hexString); // Generate keccak256 hash
-
-        // Prepare metadata
-        const metadata = JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-            uploadTime: new Date().toISOString(),
-        });
-
-        console.log('CID:', cid);
-        console.log('Metadata:', metadata);
-
-        try {
-            // Get user account
             const userAccount = await getUserAccount();
             if (!userAccount) return;
 
-            // Check if media already exists
-            const exists = await mediaAuthContract.methods.verifyMedia(cid).call();
-            if (exists) {
-                alert('Media already exists!');
-                return;
-            }
+            const metadata = {
+                fileName: file.name,
+                fileType: file.type,
+                uploadTime: new Date().toISOString(),
+                uploadedBy: userAccount,
+            };
 
-            // Estimate gas and send transaction
-            let gasEstimate;
             try {
-                gasEstimate = await mediaAuthContract.methods.uploadMedia(cid, metadata).estimateGas({ from: userAccount });
-                console.log('Gas estimate:', gasEstimate);
+                const exists = await mediaAuthContract.methods.verifyMedia(cid).call();
+                if (exists) {
+                    alert('Media already exists!');
+                    return;
+                }
+
+                let gasEstimate;
+                try {
+                    gasEstimate = await mediaAuthContract.methods.uploadMedia(cid, JSON.stringify(metadata)).estimateGas({
+                        from: userAccount,
+                    });
+                } catch (err) {
+                    gasEstimate = 300000; // Default fallback gas
+                }
+
+                const receipt = await mediaAuthContract.methods.uploadMedia(cid, JSON.stringify(metadata)).send({
+                    from: userAccount,
+                    gas: gasEstimate,
+                });
+
+                console.log('Transaction receipt:', receipt);
+                alert('Media uploaded successfully!');
+                displayResult(cid, metadata);
             } catch (err) {
-                console.error('Gas estimation failed:', err.message);
-                gasEstimate = 300000; // Default fallback gas
-            }
-
-            const receipt = await mediaAuthContract.methods.uploadMedia(cid, metadata).send({
-                from: userAccount,
-                gas: gasEstimate,
-            });
-
-            console.log('Transaction receipt:', receipt);
-            alert('Media uploaded successfully!');
-
-            // Display CID and QR code
-            displayResult(cid);
-        } catch (err) {
-            console.error('Error uploading media:', err);
-
-            // Extract revert reason from error if available
-            if (err.data && err.data.message) {
-                alert(`Transaction failed: ${err.data.message}`);
-            } else if (err.message) {
+                console.error('Error uploading media:', err);
                 alert(`Transaction failed: ${err.message}`);
-            } else {
-                alert('Transaction failed. Please check the console for details.');
             }
-        }
-    };
+        };
 
-    reader.readAsArrayBuffer(file);
-});
+        reader.readAsArrayBuffer(file);
+    });
 
+    function displayResult(cid, metadata) {
+        resultContainer.innerHTML = `
+            <table class="table table-bordered table-striped">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Details</th>
+                        <th>QR Code</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="word-wrap: break-word; max-width: 300px;">
+                            <p><strong>Unique Content Identifier:</strong> ${cid}</p>
+                            <p><strong>File Name:</strong> ${metadata.fileName}</p>
+                            <p><strong>File Type:</strong> ${metadata.fileType}</p>
+                            <p><strong>Uploaded By:</strong> ${metadata.uploadedBy}</p>
+                            <p><strong>Upload Time:</strong> ${new Date(metadata.uploadTime).toLocaleString()}</p>
+                        </td>
+                        <td>
+                            <canvas id="qrcodeCanvas"></canvas>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
 
-    function displayResult(cid) {
-        resultContainer.innerHTML = ''; // Clear any previous results
-
-        // Display CID
-        const cidElement = document.createElement('p');
-        cidElement.textContent = `CID: ${cid}`;
-        cidElement.style.fontWeight = 'bold';
-        resultContainer.appendChild(cidElement);
-
-        // Generate QR Code
-        const qrCodeCanvas = document.createElement('canvas');
-        QRCode.toCanvas(qrCodeCanvas, cid, { width: 150 }, function (error) {
+        const qrData = JSON.stringify({ cid, metadata });
+        QRCode.toCanvas(document.getElementById('qrcodeCanvas'), qrData, { width: 150 }, function (error) {
             if (error) console.error('Error generating QR code:', error);
         });
-        resultContainer.appendChild(qrCodeCanvas);
-
-        // Style the result container
-        resultContainer.style.marginTop = '20px';
-        resultContainer.style.textAlign = 'center';
     }
 });
 

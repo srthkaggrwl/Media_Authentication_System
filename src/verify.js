@@ -236,7 +236,7 @@ abi = [
       "constant": true
     }
 ];
-const contractAddress = '0xc752C6eFA44724682905b0C362614Ae8B0D42600'; // Replace with your contract address
+const contractAddress = '0x1f57AfdBD1148ED1D0a280C672216C7AF8Cb9eF7'; // Replace with your contract address
 let accounts = [];
 let mediaAuthContract;
 
@@ -346,3 +346,130 @@ document.addEventListener('DOMContentLoaded', function () {
         reader.readAsArrayBuffer(file);
     });
 });
+
+
+
+
+
+
+// document.addEventListener('DOMContentLoaded', function () {
+//     const form = document.querySelector('form');
+//     const verifyButton = document.getElementById('verifyButton');
+//     const fileInput = document.getElementById('verifyFile');
+//     const resultContainer = document.getElementById('resultContainer');
+
+//     // Prevent default form submission
+//     form.addEventListener('submit', function (e) {
+//         e.preventDefault();
+//     });
+
+//     verifyButton.addEventListener('click', async function (e) {
+//         e.preventDefault();
+
+//         if (!fileInput || fileInput.files.length === 0) {
+//             alert('Please select a file to verify.');
+//             return;
+//         }
+
+//         const file = fileInput.files[0];
+//         const reader = new FileReader();
+
+//         reader.onload = async function () {
+//             const arrayBuffer = reader.result;
+
+//             // Convert ArrayBuffer to Uint8Array
+//             const uint8Array = new Uint8Array(arrayBuffer);
+
+//             // Generate the hash (CID) using keccak256
+//             const hexString = web3.utils.bytesToHex(uint8Array); // Convert Uint8Array to Hex
+//             const cid = web3.utils.keccak256(hexString); // Generate keccak256 hash
+
+//             console.log('Generated CID:', cid);
+
+//             try {
+//                 // Get user account
+//                 const userAccount = await getUserAccount();
+//                 if (!userAccount) return;
+
+//                 // Estimate gas
+//                 let gasEstimate;
+//                 try {
+//                     gasEstimate = await mediaAuthContract.methods.authenticateMedia(cid).estimateGas({ from: userAccount });
+//                 } catch (err) {
+//                     console.error('Gas estimation failed:', err.message);
+//                     gasEstimate = 3000000; // Default fallback gas
+//                 }
+
+//                 // Call the smart contract's verifyMedia function
+//                 const txReceipt = await mediaAuthContract.methods.authenticateMedia(cid).send({
+//                     from: userAccount,
+//                     gas: gasEstimate,
+//                 });
+
+//                 // Parse the event from the transaction receipt
+//                 const event = txReceipt.events.MediaVerified.returnValues;
+//                 const isAuthentic = event[1]; // Event parameter for `isAuthentic`
+//                 const metadata = event[2]; // Event parameter for `metadata`
+
+//                 console.log('Media verification result:', isAuthentic);
+
+//                 // Display results
+//                 displayResult(isAuthentic, cid, metadata);
+//             } catch (err) {
+//                 console.error('Error verifying media:', err.message);
+//                 alert('Failed to verify media. Please check the console for details.');
+//             }
+//         };
+
+//         reader.readAsArrayBuffer(file);
+//     });
+
+//     // Function to display the result
+//     function displayResult(isAuthentic, cid, metadata) {
+//         resultContainer.innerHTML = ''; // Clear previous results
+
+//         if (isAuthentic) {
+//             const parsedMetadata = JSON.parse(metadata);
+
+//             resultContainer.innerHTML = `
+//                 <table class="table table-bordered">
+//                     <thead>
+//                         <tr>
+//                             <th>Details</th>
+//                             <th>QR Code</th>
+//                         </tr>
+//                     </thead>
+//                     <tbody>
+//                         <tr>
+//                             <td>
+//                                 <strong>Unique Content Identifier (CID):</strong> ${cid}<br>
+//                                 <strong>File Name:</strong> ${parsedMetadata.fileName}<br>
+//                                 <strong>File Type:</strong> ${parsedMetadata.fileType}<br>
+//                                 <strong>Upload Time:</strong> ${parsedMetadata.uploadTime}<br>
+//                                 <strong>Uploader Address:</strong> ${parsedMetadata.uploaderAddress || 'N/A'}
+//                             </td>
+//                             <td>
+//                                 <canvas id="qrcodeCanvas"></canvas>
+//                             </td>
+//                         </tr>
+//                     </tbody>
+//                 </table>
+//             `;
+
+//             // Generate QR Code
+//             const qrData = JSON.stringify({ cid, ...parsedMetadata });
+//             QRCode.toCanvas(document.getElementById('qrcodeCanvas'), qrData, { width: 150 }, function (error) {
+//                 if (error) console.error('Error generating QR code:', error);
+//             });
+
+//             alert('The uploaded file is authentic!');
+//         } else {
+//             resultContainer.innerHTML = `
+//                 <div class="alert alert-danger" role="alert">
+//                     The uploaded file is not authentic.
+//                 </div>
+//             `;
+//             alert('The uploaded file is not authentic!');
+//         }
+//     }
+// });
