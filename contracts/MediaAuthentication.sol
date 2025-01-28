@@ -23,6 +23,7 @@ contract MediaAuthentication {
     event MediaVerified(
         bytes32 hash,
         bool isAuthentic,
+        string metadata,
         address indexed verifier,
         uint256 timestamp
     );
@@ -73,14 +74,20 @@ contract MediaAuthentication {
     }
 
     /**
-     * @dev Authenticate a video and emit an event for the verification attempt.
+     * @dev Authenticate a video and emit an event for the verification attempt, including metadata.
      * @param _cid The CID of the video to be verified.
      */
     function authenticateMedia(string memory _cid) external {
         bytes32 mediaHash = keccak256(abi.encodePacked(_cid));
         bool isAuthentic = mediaExists(_cid);
+        string memory metadata = "";
 
-        emit MediaVerified(mediaHash, isAuthentic, msg.sender, block.timestamp);
+        // If the media is authentic, retrieve the metadata
+        if (isAuthentic) {
+            metadata = mediaRecords[mediaHash].metadata;
+        }
+
+        emit MediaVerified(mediaHash, isAuthentic, metadata, msg.sender, block.timestamp);
     }
 
     /**

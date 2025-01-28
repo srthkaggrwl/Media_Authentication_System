@@ -1,4 +1,6 @@
-// app_upload.js
+// ABI (Application Binary Interface) for the smart contract
+// Defines the contract's functions and events used in the script
+
 abi = [
     {
       "anonymous": false,
@@ -51,6 +53,12 @@ abi = [
           "internalType": "bool",
           "name": "isAuthentic",
           "type": "bool"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "metadata",
+          "type": "string"
         },
         {
           "indexed": true,
@@ -236,33 +244,40 @@ abi = [
       "constant": true
     }
 ];
-const contractAddress = '0x1f57AfdBD1148ED1D0a280C672216C7AF8Cb9eF7'; // Replace with your contract address
+
+// Replace with the address of your deployed smart contract
+const contractAddress = '0xa455027FAc08262CE2679F326Cee82089d179b66'; 
+
+// Global variables to store user accounts and contract instance
 let accounts = [];
 let mediaAuthContract;
 
+// Initialize Web3 and connect to MetaMask
 window.addEventListener('load', async () => {
     if (window.ethereum) {
-        window.web3 = new Web3(window.ethereum);
+        window.web3 = new Web3(window.ethereum); // Use MetaMask provider
         try {
-            await window.ethereum.request({ method: 'eth_requestAccounts' });
-            accounts = await web3.eth.getAccounts();
+            await window.ethereum.request({ method: 'eth_requestAccounts' }); // Request user accounts
+            accounts = await web3.eth.getAccounts(); // Get connected accounts
             console.log('Connected accounts:', accounts);
         } catch (error) {
-            console.error("User denied account access:", error.message);
+            console.error('User denied account access:', error.message);
         }
     } else {
         console.log('Non-Ethereum browser detected. Consider installing MetaMask!');
     }
 
+    // Initialize the smart contract instance
     mediaAuthContract = new web3.eth.Contract(abi, contractAddress);
     console.log('Contract initialized:', mediaAuthContract);
 });
 
+// Function to get the connected MetaMask account
 async function getUserAccount() {
     try {
         const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts.length > 0) {
-            return accounts[0]; // Use the first account
+            return accounts[0]; // Return the first account
         } else {
             throw new Error('No MetaMask accounts found.');
         }
@@ -272,16 +287,20 @@ async function getUserAccount() {
         return null;
     }
 }
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.querySelector('form');
-    const uploadButton = document.getElementById('uploadButton');
-    const fileInput = document.getElementById('mediaFile');
-    const resultContainer = document.getElementById('resultContainer');
 
+// DOMContentLoaded event to ensure the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form'); // Form element
+    const uploadButton = document.getElementById('uploadButton'); // Upload button
+    const fileInput = document.getElementById('mediaFile'); // File input field
+    const resultContainer = document.getElementById('resultContainer'); // Container for displaying results
+
+    // Prevent default form submission
     form.addEventListener('submit', function (e) {
         e.preventDefault();
     });
 
+    // Event listener for the upload button
     uploadButton.addEventListener('click', async function (e) {
         e.preventDefault();
 
@@ -290,41 +309,44 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const file = fileInput.files[0];
+        const file = fileInput.files[0]; // Get the selected file
         const reader = new FileReader();
 
         reader.onload = async function () {
             const arrayBuffer = reader.result;
-            const uint8Array = new Uint8Array(arrayBuffer);
-            const hexString = web3.utils.bytesToHex(uint8Array);
-            const cid = web3.utils.keccak256(hexString);
+            const uint8Array = new Uint8Array(arrayBuffer); // Convert file to Uint8Array
+            const hexString = web3.utils.bytesToHex(uint8Array); // Convert to hex
+            const cid = web3.utils.keccak256(hexString); // Generate unique CID
 
-            const userAccount = await getUserAccount();
+            const userAccount = await getUserAccount(); // Get connected account
             if (!userAccount) return;
 
             const metadata = {
-                fileName: file.name,
-                fileType: file.type,
-                uploadTime: new Date().toISOString(),
-                uploadedBy: userAccount,
+                fileName: file.name, // File name
+                fileType: file.type, // File type
+                uploadTime: new Date().toISOString(), // Upload timestamp
+                uploadedBy: userAccount // Uploader's account address
             };
 
             try {
+                // Check if media already exists
                 const exists = await mediaAuthContract.methods.verifyMedia(cid).call();
                 if (exists) {
                     alert('Media already exists!');
                     return;
                 }
 
+                // Estimate gas for transaction
                 let gasEstimate;
                 try {
                     gasEstimate = await mediaAuthContract.methods.uploadMedia(cid, JSON.stringify(metadata)).estimateGas({
                         from: userAccount,
                     });
                 } catch (err) {
-                    gasEstimate = 300000; // Default fallback gas
+                    gasEstimate = 300000; // Default gas if estimation fails
                 }
 
+                // Upload media to the blockchain
                 const receipt = await mediaAuthContract.methods.uploadMedia(cid, JSON.stringify(metadata)).send({
                     from: userAccount,
                     gas: gasEstimate,
@@ -332,15 +354,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 console.log('Transaction receipt:', receipt);
                 alert('Media uploaded successfully!');
-                displayResult(cid, metadata);
+                displayResult(cid, metadata); // Display upload result
             } catch (err) {
                 console.error('Error uploading media:', err);
                 alert(`Transaction failed: ${err.message}`);
             }
         };
 
-        reader.readAsArrayBuffer(file);
+        reader.readAsArrayBuffer(file); // Read file as ArrayBuffer
     });
+
+
+    // Function to display the upload result
 
     function displayResult(cid, metadata) {
         resultContainer.innerHTML = `
@@ -367,6 +392,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 </tbody>
             </table>
         `;
+        
+        // Generate QR code for the CID
 
         const qrData = JSON.stringify({ cid, metadata });
         QRCode.toCanvas(document.getElementById('qrcodeCanvas'), qrData, { width: 150 }, function (error) {
@@ -374,246 +401,3 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
-
-// document.addEventListener('DOMContentLoaded', function () {
-//     const form = document.querySelector('form');
-//     const uploadButton = document.getElementById('uploadButton');
-//     const fileInput = document.getElementById('mediaFile');
-
-//     // Prevent default form submission
-//     form.addEventListener('submit', function (e) {
-//         e.preventDefault();
-//     });
-
-//     uploadButton.addEventListener('click', async function (e) {
-//         e.preventDefault();
-
-//         if (!fileInput || fileInput.files.length === 0) {
-//             alert('Please select a file to upload.');
-//             return;
-//         }
-
-//         const file = fileInput.files[0];
-//         const reader = new FileReader();
-
-//         reader.onload = async function () {
-//             const arrayBuffer = reader.result;
-
-//             // Convert ArrayBuffer to Uint8Array
-//             const uint8Array = new Uint8Array(arrayBuffer);
-
-//             // Generate the hash (CID) using keccak256
-//             const hexString = web3.utils.bytesToHex(uint8Array); // Convert Uint8Array to Hex
-//             const cid = web3.utils.keccak256(hexString); // Generate keccak256 hash
-
-//             // Prepare metadata
-//             const metadata = JSON.stringify({
-//                 fileName: file.name,
-//                 fileType: file.type,
-//                 uploadTime: new Date().toISOString(),
-//             });
-            
-
-//             console.log('CID:', cid);
-//             console.log('Metadata:', metadata);
-
-//             try {
-//                 // Get user account
-//                 const userAccount = await getUserAccount();
-//                 if (!userAccount) return;
-
-//                 // Estimate gas
-//                 let gasEstimate;
-//                 try {
-//                     gasEstimate = await mediaAuthContract.methods.uploadMedia(cid, metadata).estimateGas({ from: userAccount });
-//                 } catch (err) {
-//                     console.error('Gas estimation failed:', err.message);
-//                     gasEstimate = 3000000; // Default fallback gas
-//                 }
-
-//                 // Send the transaction to the blockchain
-//                 const receipt = await mediaAuthContract.methods.uploadMedia(cid, metadata).send({
-//                     from: userAccount,
-//                     gas: gasEstimate,
-//                 });
-
-//                 console.log('Transaction receipt:', receipt);
-//                 alert('Media uploaded successfully!');
-//                 // alert('CID:', cid);
-//                 //saveToArtifacts(file, cid, metadata);
-//             } catch (err) {
-//                 console.error('Error uploading media:', err.message);
-//                 alert('Failed to upload media. Please check the console for details.');
-//             }
-//         };
-
-//         reader.readAsArrayBuffer(file);
-//     });
-// });
-
-// // Function to save the file and metadata locally in the artifacts folder (for Node.js environment only)
-// function saveToArtifacts(file, cid, metadata) {
-//     const fs = require('fs');
-//     const path = require('path');
-
-//     const artifactsFolder = path.join(__dirname, 'artifacts');
-//     if (!fs.existsSync(artifactsFolder)) {
-//         fs.mkdirSync(artifactsFolder);
-//     }
-
-//     const filePath = path.join(artifactsFolder, `${cid}_${file.name}`);
-//     const metadataPath = path.join(artifactsFolder, `${cid}_metadata.json`);
-
-//     // Save the file
-//     fs.writeFileSync(filePath, Buffer.from(new Uint8Array(file)));
-
-//     // Save the metadata
-//     fs.writeFileSync(metadataPath, metadata);
-
-//     console.log('File and metadata saved to artifacts folder');
-// }
-
-
-
-// const contractAddress = '0x92A479ad6A3518687c80C370b2F14711b7df28Bb'; // Replace with your contract address
-// let accounts = [];
-// let mediaAuthContract;
-
-// window.addEventListener('load', async () => {
-//     if (window.ethereum) {
-//         window.web3 = new Web3(window.ethereum);
-//         try {
-//             await window.ethereum.request({ method: 'eth_requestAccounts' });
-//             accounts = await web3.eth.getAccounts();
-//             console.log('Connected accounts:', accounts);
-//         } catch (error) {
-//             console.error("User denied account access:", error.message);
-//         }
-//     } else {
-//         console.log('Non-Ethereum browser detected. Consider installing MetaMask!');
-//     }
-
-//     mediaAuthContract = new web3.eth.Contract(abi, contractAddress);
-//     console.log('Contract initialized:', mediaAuthContract);
-// });
-
-// async function getUserAccount() {
-//     try {
-//         const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-//         if (accounts.length > 0) {
-//             return accounts[0]; // Use the first account
-//         } else {
-//             throw new Error('No MetaMask accounts found.');
-//         }
-//     } catch (error) {
-//         console.error('Error getting user account:', error.message);
-//         alert('Failed to get user account. Please ensure MetaMask is connected.');
-//         return null;
-//     }
-// }
-
-// document.addEventListener('DOMContentLoaded', function () {
-//     const form = document.querySelector('form');
-//     const uploadButton = document.getElementById('uploadButton');
-//     const fileInput = document.getElementById('mediaFile');
-
-//     // Prevent default form submission
-//     form.addEventListener('submit', function (e) {
-//         e.preventDefault();
-//     });
-
-//     uploadButton.addEventListener('click', async function (e) {
-//         e.preventDefault();
-
-//         if (!fileInput || fileInput.files.length === 0) {
-//             alert('Please select a file to upload.');
-//             return;
-//         }
-
-//         const file = fileInput.files[0];
-//         const reader = new FileReader();
-
-//         reader.onload = async function () {
-//             const arrayBuffer = reader.result;
-
-//             // Convert ArrayBuffer to Uint8Array
-//             const uint8Array = new Uint8Array(arrayBuffer);
-
-//             // Generate the hash (CID) using keccak256
-//             const hexString = web3.utils.bytesToHex(uint8Array); // Convert Uint8Array to Hex
-//             const cid = web3.utils.keccak256(hexString); // Generate keccak256 hash
-
-//             // Prepare metadata
-//             const metadata = JSON.stringify({
-//                 fileName: file.name,
-//                 fileType: file.type,
-//                 uploadTime: new Date().toISOString(),
-//             });
-
-//             console.log('CID:', cid);
-//             console.log('Metadata:', metadata);
-
-//             try {
-//                 // Get user account
-//                 const userAccount = await getUserAccount();
-//                 if (!userAccount) return;
-
-//                 // Estimate gas
-//                 let gasEstimate;
-//                 try {
-//                     gasEstimate = await mediaAuthContract.methods.uploadMedia(cid, metadata).estimateGas({ from: userAccount });
-//                 } catch (err) {
-//                     console.error('Gas estimation failed:', err.message);
-//                     gasEstimate = 3000000; // Default fallback gas
-//                 }
-
-//                 // Send the transaction to the blockchain
-//                 const receipt = await mediaAuthContract.methods.uploadMedia(cid, metadata).send({
-//                     from: userAccount,
-//                     gas: gasEstimate,
-//                 });
-
-//                 console.log('Transaction receipt:', receipt);
-//                 alert('Media uploaded successfully!');
-
-//                 // Call saveToArtifacts only if running in Node.js environment
-//                 if (typeof require !== 'undefined') {
-//                     saveToArtifacts(file, cid, metadata);
-//                 } else {
-//                     console.log('Skipping local save as this is not a Node.js environment.');
-//                 }
-//             } catch (err) {
-//                 console.error('Error uploading media:', err.message);
-//                 alert('Failed to upload media. Please check the console for details.');
-//             }
-//         };
-
-//         reader.readAsArrayBuffer(file);
-//     });
-// });
-
-// // Function to save the file and metadata locally in the artifacts folder (for Node.js environment only)
-// function saveToArtifacts(file, cid, metadata) {
-//     try {
-//         const fs = require('fs');
-//         const path = require('path');
-
-//         const artifactsFolder = path.join(__dirname, 'artifacts');
-//         if (!fs.existsSync(artifactsFolder)) {
-//             fs.mkdirSync(artifactsFolder);
-//         }
-
-//         const filePath = path.join(artifactsFolder, `${cid}_${file.name}`);
-//         const metadataPath = path.join(artifactsFolder, `${cid}_metadata.json`);
-
-//         // Save the file
-//         fs.writeFileSync(filePath, Buffer.from(new Uint8Array(file)));
-
-//         // Save the metadata
-//         fs.writeFileSync(metadataPath, metadata);
-
-//         console.log('File and metadata saved to artifacts folder');
-//     } catch (err) {
-//         console.error('Error saving to artifacts folder:', err.message);
-//     }
-// }

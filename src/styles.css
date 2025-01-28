@@ -41,32 +41,31 @@ body {
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* New styles added below */
 #resultContainer {
-    margin-top: 20px; /* Adds spacing between the upload button and the table */
-    text-align: left; /* Ensures text alignment is consistent for the metadata */
+    margin-top: 20px;
+    text-align: left;
 }
 
 table {
-    word-wrap: break-word; /* Wraps text to avoid overflow */
-    width: 100%; /* Ensures table spans the container width */
-    margin: 0 auto; /* Centers the table */
-    background-color: white; /* Table background for contrast */
-    border-collapse: collapse; /* Combines borders for a clean look */
+    word-wrap: break-word;
+    width: 100%;
+    margin: 0 auto;
+    background-color: white;
+    border-collapse: collapse;
 }
 
 table th, table td {
-    border: 1px solid #dee2e6; /* Adds border to table cells */
-    padding: 10px; /* Adds padding for better readability */
-    vertical-align: top; /* Aligns text to the top */
+    border: 1px solid #dee2e6;
+    padding: 10px;
+    vertical-align: top;
 }
 
 table th {
-    background-color: #f1f1f1; /* Light background for table headers */
+    background-color: #f1f1f1;
     font-weight: bold;
 }
 
 #qrcodeCanvas {
     display: block;
-    margin: 10px auto; /* Centers the QR code inside its cell */
+    margin: 10px auto;
 }
